@@ -21,6 +21,7 @@ from .commands.look_around import *
 from .commands.queue import *
 from .commands.dequeue import *
 from .commands.sit import *
+from .commands.teleport import * #DILLON: added teleport command
 from omni.anim.people.ui_components import CommandTextWidget
 from omni.anim.people import PeopleSettings
 import importlib
@@ -186,6 +187,8 @@ class CharacterBehavior(BehaviorScript):
             return GoTo(self.character, command, self.navigation_manager)
         elif command[0] == "Idle":
             return Idle(self.character, command, self.navigation_manager)
+        elif command[0] == "Teleport":
+            return Teleport(self.character, command, self.navigation_manager) #DILLON
         elif command[0] == "Queue":
             return QueueCmd(self.character, command, self.navigation_manager, self.queue_manager)
         elif command[0] == "Dequeue":
