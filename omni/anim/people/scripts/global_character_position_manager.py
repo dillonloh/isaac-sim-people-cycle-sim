@@ -33,6 +33,68 @@ class GlobalCharacterPositionManager:
         self._character_radius = {}
         GlobalCharacterPositionManager.__instance = self
 
+        #### ADDED CODE ####
+        # Initialize ROS
+        
+        #check if ROS is already initialized
+        if not rclpy.ok():
+            rclpy.init()
+        self._ros_node = Node("character_position_manager")
+        self._publishers = {}
+
+        self._spin_thread = threading.Thread(target=self._spin_node)
+        self._spin_thread.daemon = True
+        self._spin_thread.start()
+
+        # Start the thread for printing character positions
+        # self._printing_thread = threading.Thread(target=self._print_positions)
+        # self._printing_thread.daemon = True 
+        # self._printing_thread.start()
+
+        self._ros_node.create_publisher(Pose, "_female_adult_police_01", 10)
+
+    #### ADDED CODE (DILLON)####
+    def _spin_node(self):
+        """Method to spin the node in a separate thread."""
+        try:
+            rclpy.spin(self._ros_node)
+        except Exception as e:
+            pass
+        
+    #### ADDED CODE (DILLON)####
+    def _print_positions(self):
+        """Continuously prints and publishes the current character positions."""
+        print("START THREAD")
+        while True:
+            try:
+                if rclpy.ok():
+                    for character_name, position in self._character_positions.items():
+                        # Format the output
+                        formatted_position = f"{character_name}: Position x={position.x}, y={position.y}, z={position.z}"
+                        # print(formatted_position)
+
+                        # Check if publisher exists for this character, if not create one
+                        if character_name not in self._publishers:
+                            topic_name = character_name.replace('/', '_').split("ManRoot_")[-1]
+                            print(f"Creating publisher for {character_name} on topic {topic_name}")
+                            self._publishers[character_name] = self._ros_node.create_publisher(Pose, topic_name, 10)
+                        
+                        # Create the ROS message and publish it
+                        msg = Pose()
+                        msg.position.x = position.x
+                        msg.position.y = position.y
+                        msg.position.z = position.z
+
+                        self._publishers[character_name].publish(msg)
+
+                else:
+                    break
+
+                threading.Event().wait(0.5)
+            except Exception as e:
+                print(f"Error in printing thread: {e}")
+                break
+
     def destroy(self):
         GlobalCharacterPositionManager.__instance = None
 
