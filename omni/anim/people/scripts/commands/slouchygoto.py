@@ -1,0 +1,63 @@
+# Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+#
+# NVIDIA CORPORATION and its licensors retain all intellectual property
+# and proprietary rights in and to this software, related documentation
+# and any modifications thereto.  Any use, reproduction, disclosure or
+# distribution of this software and related documentation without an express
+# license agreement from NVIDIA CORPORATION is strictly prohibited.
+
+from .base_command import Command
+from ..utils import Utils
+
+class SlouchyGoTo(Command):
+    def __init__(self, character, command, navigation_manager = None):
+        super().__init__(character, command, navigation_manager)
+        if len(command)>1:
+            self.duration = float(command[1])
+
+    def setup(self):
+        super().setup()
+        self.character.set_variable("Action", "slouchyWalk")
+        self.navigation_manager.generate_goto_path(self.command[1:])
+
+    def execute(self, dt):
+        if not self.is_setup:
+            self.setup()
+        return self.update(dt)
+
+    def update(self, dt):
+        self.time_elapsed += dt
+        if self.walk(dt):
+            return self.exit_command()
+
+    # A copy of the walk(dt) from base command class. The only change is the state variable 
+    def walk(self, dt):
+        if self.navigation_manager.destination_reached():
+            self.desired_walk_speed = 0.0
+            if self.actual_walk_speed < 0.001:
+                self.character.set_variable("Action", "None")
+                self.navigation_manager.set_path_points(None)
+                if self.navigation_manager.get_path_target_rot() is not None:   
+                    if self.rotate(dt):
+                        self.character.set_variable("Action", "None")
+                        self.navigation_manager.set_path_target_rot(None)
+                        self.navigation_manager.clean_path_targets()
+                        return True
+                    return False
+                else:
+                    self.character.set_variable("Action", "None")
+                    self.navigation_manager.clean_path_targets()
+                    return True
+        else:
+            self.set_rotation = False
+            self.desired_walk_speed = 1.0
+
+        self.character.set_variable("Action", "slouchyWalk")
+        self.navigation_manager.update_path()
+        self.character.set_variable("PathPoints", self.navigation_manager.get_path_points())
+
+        # Blends walking animation when starting or stopping.
+        max_change = dt / Utils.CONFIG["WalkBlendTime"]
+        delta_walk = Utils.cap(self.desired_walk_speed - self.actual_walk_speed, -1 * max_change, max_change)
+        self.actual_walk_speed = Utils.cap(self.actual_walk_speed + delta_walk, 0.0, 1.0)
+        self.character.set_variable("slouchyWalk", self.actual_walk_speed)

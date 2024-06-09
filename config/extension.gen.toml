@@ -1,0 +1,10 @@
+
+[package]
+    archivePath = "./archives/omni.anim.people-0.2.4.zip"
+
+    [package.publish]
+        date = 1701754208
+        kitVersion = "104.2+release.72.7cad39bd.tc"
+
+    [package.authors]
+        0 = "NVIDIA"

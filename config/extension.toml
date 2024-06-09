@@ -1,0 +1,39 @@
+[package]
+version = "0.2.4"
+authors = ["NVIDIA"]
+title = "Omni.Anim.People"
+description= "Extension for people simulation in Isaac Sim"
+readme  = "docs/README.md"
+category = "Animation"
+keywords = ["people","metropolis","simulation"]
+changelog="docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+
+[dependencies]
+"omni.usd" = {}
+"omni.ui" = {}
+"omni.kit.menu.utils" = {}
+"omni.kit.quicklayout" = {}
+"omni.kit.stage_templates" = {}
+"omni.anim.navigation.bundle" = {}
+"omni.anim.graph.bundle" = {}
+"omni.anim.retarget.bundle" = {}
+"omni.kit.scripting" = {}
+"omni.kit.window.title" = {}
+"omni.kit.window.stage" = {}  # loaded before this extension
+"omni.kit.window.console" = {}  # loaded before this extension
+"omni.kit.window.property" = {}  # loaded before this extension
+
+# Main python module this extension provides, it will be publicly available as "import omni.example.hello".
+[[python.module]]
+name = "omni.anim.people"
+
+[settings]
+exts."omni.anim.people".command_settings.command_file_path = ""
+exts."omni.anim.people".command_settings.robot_command_file_path = ""
+exts."omni.anim.people".navigation_settings.dynamic_avoidance_enabled= true
+exts."omni.anim.people".navigation_settings.navmesh_enabled = true
+persistent.exts."omni.anim.people".asset_settings.character_assets_path = ""
+persistent.exts."omni.anim.people".behavior_script_settings.behavior_script_path = ""
+persistent.exts."omni.anim.people".character_prim_path = "/World/Characters"
