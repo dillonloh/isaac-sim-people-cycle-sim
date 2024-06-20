@@ -22,9 +22,14 @@ from .commands.queue import *
 from .commands.dequeue import *
 from .commands.sit import *
 from .commands.teleport import * #DILLON: added teleport command
+from .commands.waittilltime import * #DILLON: added waittilltime command
+from .commands.gotonew import * #DILLON: added new goto command with timeout
+
 from omni.anim.people.ui_components import CommandTextWidget
 from omni.anim.people import PeopleSettings
 import importlib
+
+import time
 
 class CharacterBehavior(BehaviorScript):
     """
@@ -44,7 +49,7 @@ class CharacterBehavior(BehaviorScript):
         Called when entering runtime (when clicking play button). Uses renew_character_state() to initialize character state.
         """
         self.renew_character_state()
-
+        self.sim_start_time = time.time()
 
     def on_stop(self):
         """
@@ -185,10 +190,14 @@ class CharacterBehavior(BehaviorScript):
         """
         if command[0] == "GoTo":
             return GoTo(self.character, command, self.navigation_manager)
-        elif command[0] == "Idle":
-            return Idle(self.character, command, self.navigation_manager)
+        elif command[0] == "GoToNew":
+            return GoToNew(self.character, command, self.navigation_manager, self.sim_start_time) #DILLON
+        elif command[0] == "WaitTillTime":
+            return WaitTillTime(self.character, command, self.navigation_manager, self.sim_start_time) #DILLON
         elif command[0] == "Teleport":
             return Teleport(self.character, command, self.navigation_manager) #DILLON
+        elif command[0] == "Idle":
+            return Idle(self.character, command, self.navigation_manager)
         elif command[0] == "Queue":
             return QueueCmd(self.character, command, self.navigation_manager, self.queue_manager)
         elif command[0] == "Dequeue":
