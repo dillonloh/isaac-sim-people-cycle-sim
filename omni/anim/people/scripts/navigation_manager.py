@@ -136,6 +136,7 @@ class NavigationManager:
 
 
     def generate_path(self, coords, path_target_rot = None):
+        print("generate_path")
         self.path_targets = []
         prev_point = coords[0]
         path = []
@@ -144,6 +145,26 @@ class NavigationManager:
 
         for point in coords[1:]:
             if self.navmesh_enabled:
+                print("check validate_navmesh_point")
+                print(prev_point)
+                print(point)
+                checkedPrevPoint = self.navigation_interface.validate_navmesh_point(prev_point)
+                checkedPoint = self.navigation_interface.validate_navmesh_point(point)
+                print(checkedPrevPoint)
+                print(checkedPoint)
+                print(prev_point)
+                print(point)
+
+                if ( checkedPrevPoint != True ):
+                    print("There is not valid prev_point position")
+                    carb.log_error("There is not valid prev_point position : " + str(prev_point))
+                    return 
+
+                if ( checkedPoint != True ):
+                    print("There is not valid point position")
+                    carb.log_error("There is not valid point position : " + str(point))
+                    return 
+
                 generated_path = self.navigation_interface.query_navmesh_path(prev_point, point)
                 if generated_path is None:
                     carb.log_error("There is no valid path between point position : " + str(prev_point) + " and " + "position : " + str(point))
@@ -155,11 +176,13 @@ class NavigationManager:
                 path.append(point)
             self.path_targets.append(point)
         self.path_points = path
+
         if path_target_rot:
             self.path_final_target_rot = path_target_rot
 
 
     def generate_goto_path(self, coords):
+        print("generate_goto_path")
         if len(coords) < 4 or len(coords) % 3 != 1:
             raise ValueError("Invalid coordinate list for path generation. Coordinate list must be a sequence of x,y,z with the last cooridnate also specifying the ending rotation.")
         
