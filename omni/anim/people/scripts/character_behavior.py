@@ -29,14 +29,10 @@ from omni.anim.people.ui_components import CommandTextWidget
 from omni.anim.people import PeopleSettings
 import importlib
 
-import time
-
 class CharacterBehavior(BehaviorScript):
     """
     Character controller class that reads commands from a command file and drives character actions.
-    """
-
-    
+    """    
     def on_init(self):
         """
         Called when a script is attached to characters and when a stage is loaded. Uses renew_character_state() to initialize character state.
@@ -49,7 +45,7 @@ class CharacterBehavior(BehaviorScript):
         Called when entering runtime (when clicking play button). Uses renew_character_state() to initialize character state.
         """
         self.renew_character_state()
-        self.sim_start_time = time.time()
+        self.current_time = 0.0
 
     def on_stop(self):
         """
@@ -191,9 +187,9 @@ class CharacterBehavior(BehaviorScript):
         if command[0] == "GoTo":
             return GoTo(self.character, command, self.navigation_manager)
         elif command[0] == "GoToNew":
-            return GoToNew(self.character, command, self.navigation_manager, self.sim_start_time) #DILLON
+            return GoToNew(self.character, command, self.navigation_manager, self.current_time) #DILLON
         elif command[0] == "WaitTillTime":
-            return WaitTillTime(self.character, command, self.navigation_manager, self.sim_start_time) #DILLON
+            return WaitTillTime(self.character, command, self.navigation_manager, self.current_time) #DILLON
         elif command[0] == "Teleport":
             return Teleport(self.character, command, self.navigation_manager) #DILLON
         elif command[0] == "Idle":
@@ -239,6 +235,13 @@ class CharacterBehavior(BehaviorScript):
         :param float current_time: current time in seconds.
         :param float delta_time: time elapsed since last update.
         """
+        #print("on_update")
+        #print(current_time)
+        #print(self.sum_time)
+        #print(time.time() - self.sim_start_time)
+        #self.sum_time = self.sum_time + delta_time
+        self.current_time = current_time
+
         if self.character is None:
             if not self.init_character():
                 return

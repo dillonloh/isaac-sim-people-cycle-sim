@@ -6,29 +6,33 @@
 # distribution of this software and related documentation without an express
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
 
-import time
-
 from .base_command import Command
+import carb
 
 class WaitTillTime(Command):
     """
     Command class to wait until a specified time relative to sim start time.
     """
-    def __init__(self, character, command, navigation_manager, sim_start_real_time):
+    def __init__(self, character, command, navigation_manager, current_time):
         super().__init__(character, command, navigation_manager)
-        self.sim_start_real_time = sim_start_real_time
+        #self.sim_start_real_time = sim_start_real_time
         # if current time upon init of the command is already past wait_end_time, we skip the command
         if len(command) > 1:
             wait_end_time = int(command[1])
-            if time.time() > wait_end_time:        
+            print("WaitTillTime: ")
+            print(current_time)
+            print(wait_end_time)
+            if current_time > wait_end_time:
+                print("current_time > wait_end_time")        
+                carb.log_info("[Warning] WaitTillTime: Current time (" + str(current_time) + ") is beyound wait time (" 
+                    + str(wait_end_time) + ")" )
                 self.duration = 0
             else:
                 # wait_end_time is relative to 0 (i.e. sim_start)
                 # time.time() is relative to epoch time
                 # sim_start_real_time is the epoch time when the simulation started
                 # so we need to adjust the wait_end_time to be relative to epoch time
-                self.duration = (wait_end_time + self.sim_start_real_time) - time.time()
-                
+                self.duration = wait_end_time - current_time   
             
     def setup(self):
         super().setup()
