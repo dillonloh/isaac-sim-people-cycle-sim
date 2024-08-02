@@ -7,17 +7,11 @@
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
 
 from __future__ import annotations
-import carb
-import logging
-import threading
 
 #### ADDED CODE ####
-import rclpy 
-from rclpy.node import Node
+import asyncio
+import rospy
 from geometry_msgs.msg import Pose
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%a, %d %b %Y %H:%M:%S', filename='/home/dillon/test.log', filemode='w')
 
 class GlobalCharacterPositionManager:
     """Global class which stores current and predicted positions of all characters and moving objects."""
@@ -35,65 +29,62 @@ class GlobalCharacterPositionManager:
 
         #### ADDED CODE ####
         # Initialize ROS
-        
-        #check if ROS is already initialized
-        if not rclpy.ok():
-            rclpy.init()
-        self._ros_node = Node("character_position_manager")
-        self._publishers = {}
-
-        self._spin_thread = threading.Thread(target=self._spin_node)
-        self._spin_thread.daemon = True
-        self._spin_thread.start()
-
-        # Start the thread for printing character positions
-        # self._printing_thread = threading.Thread(target=self._print_positions)
-        # self._printing_thread.daemon = True 
-        # self._printing_thread.start()
-
-        self._ros_node.create_publisher(Pose, "_female_adult_police_01", 10)
-
-    #### ADDED CODE (DILLON)####
-    def _spin_node(self):
-        """Method to spin the node in a separate thread."""
         try:
-            rclpy.spin(self._ros_node)
-        except Exception as e:
-            pass
+            rospy.init_node("hello", anonymous=True, disable_signals=True, log_level=rospy.ERROR)
+        except rospy.exceptions.ROSException as e:
+            print("Node has already been initialized, do nothing")
+        
+        self._publishers = {}
+        asyncio.ensure_future(self._print_positions())
+
+    async def my_task(self):
+        print("my_task")
+        from std_msgs.msg import String
+        pub = rospy.Publisher("/hello_topic", String, queue_size=10)
+
+        for frame in range(10):
+            pub.publish("hello world " + str(frame))
+            await asyncio.sleep(1.0)
+        pub.unregister()
+        pub = None
         
     #### ADDED CODE (DILLON)####
-    def _print_positions(self):
-        """Continuously prints and publishes the current character positions."""
-        print("START THREAD")
-        while True:
+    async def _print_positions(self):
+        """publishes the current character positions."""
+        print("START THREAD publishes the current character positions ")
+        while not rospy.is_shutdown():
             try:
-                if rclpy.ok():
-                    for character_name, position in self._character_positions.items():
-                        # Format the output
-                        formatted_position = f"{character_name}: Position x={position.x}, y={position.y}, z={position.z}"
-                        # print(formatted_position)
+                for character_name, position in self._character_positions.items():
+                    # Format the output
+                    formatted_position = f"{character_name}: Position x={position.x}, y={position.y}, z={position.z}"
+                    print(formatted_position)
 
-                        # Check if publisher exists for this character, if not create one
-                        if character_name not in self._publishers:
-                            topic_name = character_name.replace('/', '_').split("ManRoot_")[-1]
-                            print(f"Creating publisher for {character_name} on topic {topic_name}")
-                            self._publishers[character_name] = self._ros_node.create_publisher(Pose, topic_name, 10)
+                    # Check if publisher exists for this character, if not create one
+                    if character_name not in self._publishers:
+                        #topic_name = character_name.replace('/', '_').split("ManRoot_")[-1]
+                        topic_name = character_name.split("/")[3]
+                        print(f"Creating publisher for {character_name} on topic {topic_name}")
+                        self._publishers[character_name] = rospy.Publisher(topic_name, Pose, queue_size=10)
                         
-                        # Create the ROS message and publish it
-                        msg = Pose()
-                        msg.position.x = position.x
-                        msg.position.y = position.y
-                        msg.position.z = position.z
+                    print(character_name.split("/")[3])
+                    # Create the ROS message and publish it
+                    msg = Pose()
+                    msg.position.x = position.x
+                    msg.position.y = position.y
+                    msg.position.z = position.z
 
-                        self._publishers[character_name].publish(msg)
+                    self._publishers[character_name].publish(msg)
+                
+                await asyncio.sleep(0.5)
 
-                else:
-                    break
-
-                threading.Event().wait(0.5)
             except Exception as e:
                 print(f"Error in printing thread: {e}")
                 break
+
+        for k,v in self._publishers.items():
+            v.unregister()
+            v = None
+        self._publishers = {}
 
     def destroy(self):
         GlobalCharacterPositionManager.__instance = None
