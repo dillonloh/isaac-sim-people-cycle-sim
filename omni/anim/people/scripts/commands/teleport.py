@@ -5,9 +5,12 @@ class Teleport(Command):
     Command class to teleport a character to a specific location.
     """
     def __init__(self, character, command, navigation_manager):
+        print("Teleport __init__")
         super().__init__(character, command, navigation_manager)
-        
+        self._exit_time = 0.2
+                
     def setup(self):
+        print("Teleport setup")
         super().setup()
         # Assuming the target location is passed as part of the command.
         # Ensure the target_location is a tuple of three floats (x, y, z).
@@ -23,10 +26,14 @@ class Teleport(Command):
         self.character.set_world_transform(target_location, default_rotation)
         
     def execute(self, dt):
+        print("Teleport execute")
         if not self.is_setup:
             self.setup()
         return self.update(dt)
 
     def update(self, dt):
+        print("Teleport update")
         # Since teleportation is instantaneous, we mark the command as completed immediately.
-        return self.exit_command()
+        self.time_elapsed += dt
+        if self.time_elapsed > self._exit_time:
+            return self.exit_command()
