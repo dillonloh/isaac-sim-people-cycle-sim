@@ -9,6 +9,8 @@ class Teleport(Command):
         super().__init__(character, command, navigation_manager)
         self._exit_time = 0.2
                 
+        self._exit_time = 0.2
+                
     def setup(self):
         print("Teleport setup")
         super().setup()
@@ -22,7 +24,7 @@ class Teleport(Command):
         
         self.character.set_variable("Action", "Teleport")
         # Set the character's position and rotation instantly.
-        print("Teleporting character to", target_location)
+        #print("Teleporting character to", target_location)
         self.character.set_world_transform(target_location, default_rotation)
         
     def execute(self, dt):
@@ -34,6 +36,9 @@ class Teleport(Command):
     def update(self, dt):
         print("Teleport update")
         # Since teleportation is instantaneous, we mark the command as completed immediately.
+        self.time_elapsed += dt
+        if self.time_elapsed > self._exit_time:
+            return self.exit_command()
         self.time_elapsed += dt
         if self.time_elapsed > self._exit_time:
             return self.exit_command()

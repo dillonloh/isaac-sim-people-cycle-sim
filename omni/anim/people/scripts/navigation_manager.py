@@ -32,8 +32,7 @@ class NavigationManager:
         self.delta_time_list = []
         self.path_points = []
         self.path_targets = []
-        self.path_final_target_rot = None 
-        
+        self.path_final_target_rot = None
 
     def destroy(self):
         self.navigation_interface = None
@@ -70,7 +69,7 @@ class NavigationManager:
     def get_path_target_pos(self):
         if not self.path_targets:
             return None
-        return self.path_targets[-1]
+        self.log_file = open("omni_nav.log","w")
 
 
     def get_path_target_rot(self):
@@ -136,7 +135,7 @@ class NavigationManager:
 
 
     def generate_path(self, coords, path_target_rot = None):
-        print("generate_path")
+        # print("generate_path")
         self.path_targets = []
         prev_point = coords[0]
         path = []
@@ -146,6 +145,7 @@ class NavigationManager:
         for point in coords[1:]:
             if self.navmesh_enabled:
                 print("check validate_navmesh_point")
+                print(self.character_name)
                 print(prev_point)
                 print(point)
                 checkedPrevPoint = self.navigation_interface.validate_navmesh_point(prev_point)
@@ -180,6 +180,7 @@ class NavigationManager:
         if path_target_rot:
             self.path_final_target_rot = path_target_rot
 
+        # print("generate_path")
 
     def generate_goto_path(self, coords):
         print("generate_goto_path")
@@ -198,6 +199,7 @@ class NavigationManager:
             target_rot_quatd = Utils.convert_angle_to_quatd(float(coords[-1]))
         self.generate_path(path, target_rot_quatd)
 
+        print("generate_goto_path done")
 
     def detect_collision(self):
         # This will store all the characters that may collide with the current obstacle

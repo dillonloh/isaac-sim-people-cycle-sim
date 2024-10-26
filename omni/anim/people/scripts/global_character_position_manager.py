@@ -37,21 +37,21 @@ class GlobalCharacterPositionManager:
         # Initialize ROS
         
         #check if ROS is already initialized
-        if not rclpy.ok():
-            rclpy.init()
-        self._ros_node = Node("character_position_manager")
-        self._publishers = {}
+        # if not rclpy.ok():
+        #     rclpy.init()
+        # self._ros_node = Node("character_position_manager")
+        # self._publishers = {}
 
-        self._spin_thread = threading.Thread(target=self._spin_node)
-        self._spin_thread.daemon = True
-        self._spin_thread.start()
+        # self._spin_thread = threading.Thread(target=self._spin_node)
+        # self._spin_thread.daemon = True
+        # self._spin_thread.start()
 
         # Start the thread for printing character positions
         # self._printing_thread = threading.Thread(target=self._print_positions)
         # self._printing_thread.daemon = True 
         # self._printing_thread.start()
 
-        self._ros_node.create_publisher(Pose, "_female_adult_police_01", 10)
+        # self._ros_node.create_publisher(Pose, "_female_adult_police_01", 10)
 
     #### ADDED CODE (DILLON)####
     def _spin_node(self):
