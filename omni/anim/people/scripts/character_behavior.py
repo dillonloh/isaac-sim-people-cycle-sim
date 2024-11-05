@@ -24,6 +24,7 @@ from .commands.sit import *
 from .commands.teleport import * #DILLON: added teleport command
 from .commands.waittilltime import * #DILLON: added waittilltime command
 from .commands.gotonew import * #DILLON: added new goto command with timeout
+from .commands.gotoloop import * #DILLON: added new goto command with loop
 
 from omni.anim.people.ui_components import CommandTextWidget
 from omni.anim.people import PeopleSettings
@@ -186,6 +187,8 @@ class CharacterBehavior(BehaviorScript):
         """
         if command[0] == "GoTo":
             return GoTo(self.character, command, self.navigation_manager)
+        elif command[0] == "GoToLoop":
+            return GoToLoop(self.character, command, self.navigation_manager) #DILLON: VLN
         elif command[0] == "GoToNew":
             return GoToNew(self.character, command, self.navigation_manager, self.current_time) #DILLON
         elif command[0] == "WaitTillTime":

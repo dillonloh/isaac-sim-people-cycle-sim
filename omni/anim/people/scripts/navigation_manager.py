@@ -148,8 +148,8 @@ class NavigationManager:
                 print(self.character_name)
                 print(prev_point)
                 print(point)
-                checkedPrevPoint = self.navigation_interface.validate_navmesh_point(prev_point)
-                checkedPoint = self.navigation_interface.validate_navmesh_point(point)
+                checkedPrevPoint = Utils.validate_navmesh_point(prev_point)
+                checkedPoint = Utils.validate_navmesh_point(point)
                 print(checkedPrevPoint)
                 print(checkedPoint)
                 print(prev_point)
@@ -183,6 +183,7 @@ class NavigationManager:
         # print("generate_path")
 
     def generate_goto_path(self, coords):
+        print(coords)
         print("generate_goto_path")
         if len(coords) < 4 or len(coords) % 3 != 1:
             raise ValueError("Invalid coordinate list for path generation. Coordinate list must be a sequence of x,y,z with the last cooridnate also specifying the ending rotation.")
@@ -273,17 +274,17 @@ class NavigationManager:
                 else:
                     # If navmesh and the other object will avoid you, pick the best avoidance point if it is on the navmesh, if it is not then skip as the other object will avoid you anyway.
                     if Utils.is_character(self.collision_list[0]) and self.is_still_moving(self.collision_list[0]):
-                        if direction_of_collision > 0.2 and self.navigation_interface.validate_navmesh_point([left_future_point.x, left_future_point.y, 0]):
+                        if direction_of_collision > 0.2 and Utils.validate_navmesh_point([left_future_point.x, left_future_point.y, 0]):
                             new_position = left_future_point
-                        elif direction_of_collision <= -0.2 and self.navigation_interface.validate_navmesh_point([right_future_point.x, right_future_point.y, 0]):
+                        elif direction_of_collision <= -0.2 and Utils.validate_navmesh_point([right_future_point.x, right_future_point.y, 0]):
                             new_position = right_future_point
                         else:
                             return
                     # If the other object is not going to avoid you, then pick the best avoidance point as long as it is on the navmesh
                     else:
-                        if self.navigation_interface.validate_navmesh_point([left_future_point.x, left_future_point.y, 0]) and (direction_of_collision > 0.2 or not self.navigation_interface.validate_navmesh_point([right_future_point.x, right_future_point.y, 0])):
+                        if Utils.validate_navmesh_point([left_future_point.x, left_future_point.y, 0]) and (direction_of_collision > 0.2 or not Utils.validate_navmesh_point([right_future_point.x, right_future_point.y, 0])):
                             new_position = left_future_point
-                        elif self.navigation_interface.validate_navmesh_point([right_future_point.x, right_future_point.y, 0]) and (direction_of_collision < -0.2 or not self.navigation_interface.validate_navmesh_point([left_future_point.x, left_future_point.y, 0])):
+                        elif Utils.validate_navmesh_point([right_future_point.x, right_future_point.y, 0]) and (direction_of_collision < -0.2 or not Utils.validate_navmesh_point([left_future_point.x, left_future_point.y, 0])):
                             new_position = right_future_point
                         else:
                             return

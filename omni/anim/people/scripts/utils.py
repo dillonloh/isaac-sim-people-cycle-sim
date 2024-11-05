@@ -9,6 +9,7 @@
 import carb
 import math
 import omni.usd
+import omni.anim.navigation.core as nav
 from pxr import Gf, UsdGeom, Usd, UsdSkel, AnimGraphSchema
 
 
@@ -238,3 +239,14 @@ class Utils:
         bbox_y = bboxMax[1]-bboxMin[1]
         radius = max(bbox_y, bbox_x)
         return radius/2
+
+
+    """
+    ------------------------NavMesh------------------------
+    """
+
+    def validate_navmesh_point(point):
+        """check whether a point is on navmesh"""
+        navmesh = nav.acquire_interface().get_navmesh()
+        closest_point = carb.Float3(0, 0, 0)
+        return navmesh.query_closest_point(carb.Float3(point[0], point[1], point[2]), closest_point) == 2
