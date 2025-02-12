@@ -89,7 +89,7 @@ class GlobalCharacterPositionManager:
 
             except Exception as e:
                 print(f"Error in printing thread: {e}")
-                break
+                
 
     def destroy(self):
         GlobalCharacterPositionManager.__instance = None
