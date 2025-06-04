@@ -14,7 +14,8 @@ import threading
 #### ADDED CODE ####
 import rclpy 
 from rclpy.node import Node
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, PoseStamped
+from rosgraph_msgs.msg import Clock
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%a, %d %b %Y %H:%M:%S', filename='/home/dillon/test.log', filemode='w')
@@ -33,14 +34,18 @@ class GlobalCharacterPositionManager:
         self._character_future_positions = {}
         self._character_radius = {}
         GlobalCharacterPositionManager.__instance = self
-
+        
         #### ADDED CODE ####
         # Initialize ROS
         
         #check if ROS is already initialized
         if not rclpy.ok():
-            rclpy.init()
+            rclpy.init()    
+        
+        self.latest_ros_time = None  # Initialize the latest ROS time
+
         self._ros_node = Node("character_position_manager")
+        self._clock_subscriber = self._ros_node.create_subscription(Clock, "/clock", self.clock_callback, 10)
         self._publishers = {}
 
         self._spin_thread = threading.Thread(target=self._spin_node)
@@ -51,6 +56,11 @@ class GlobalCharacterPositionManager:
         self._printing_thread = threading.Thread(target=self._print_positions)
         self._printing_thread.daemon = True 
         self._printing_thread.start()
+
+    ## ADDED CODE ####        
+    def clock_callback(self, msg):
+        """ Update the latest simulation time from /clock. """
+        self.latest_ros_time = msg.clock  # Stores the most recent simulation time
 
     #### ADDED CODE (DILLON)####
     def _spin_node(self):
@@ -68,31 +78,60 @@ class GlobalCharacterPositionManager:
             try:
                 for character_name, position in self._character_positions.items():
                     # Format the output
-                    formatted_position = f"{character_name}: Position x={position.x}, y={position.y}, z={position.z}"
+                    formatted_position = f"{character_name.split('/')[3]}: Position x={position.x}, y={position.y}, z={position.z}"
                     # print(formatted_position)
 
                     # Dynamically create a publisher if not already created
                     if character_name not in self._publishers:
                         topic_name = character_name.split('/')[3]
                         print(f"Creating publisher for {character_name} on topic {topic_name}")
-                        self._publishers[character_name] = self._ros_node.create_publisher(Pose, topic_name, 10)
+                        self._publishers[character_name] = self._ros_node.create_publisher(PoseStamped, topic_name, 10)
                     
                     # Publish the position to the corresponding topic
-                    msg = Pose()
-                    msg.position.x = position.x
-                    msg.position.y = position.y
-                    msg.position.z = position.z
+                    msg = PoseStamped()
+                    
+                    msg.header.stamp = self.latest_ros_time
+                    msg.header.frame_id = "map"
+                    msg.pose.position.x = position.x
+                    msg.pose.position.y = position.y
+                    msg.pose.position.z = position.z
 
                     self._publishers[character_name].publish(msg)
 
-                threading.Event().wait(0.5)  # Sleep for 0.5 seconds
+                threading.Event().wait(0.05)  # Sleep for 0.5 seconds
 
             except Exception as e:
                 print(f"Error in printing thread: {e}")
                 
 
     def destroy(self):
+        # Destroy all publishers
+        for character_name, publisher in self._publishers.items():
+            try:
+                self._ros_node.destroy_publisher(publisher)
+                print(f"Destroyed publisher for {character_name}")
+            except Exception as e:
+                print(f"Error destroying publisher for {character_name}: {e}")
+
+        self._publishers.clear()
+
+        # Destroy the ROS node
+        if self._ros_node is not None:
+            try:
+                self._ros_node.destroy_node()
+                print("ROS node destroyed")
+            except Exception as e:
+                print(f"Error destroying ROS node: {e}")
+
+        # Shutdown ROS only if it was the one to initialize it
+        if rclpy.ok():
+            try:
+                rclpy.shutdown()
+                print("ROS shutdown")
+            except Exception as e:
+                print(f"Error during ROS shutdown: {e}")
         GlobalCharacterPositionManager.__instance = None
+
 
     def __del__(self):
         self.destroy()
