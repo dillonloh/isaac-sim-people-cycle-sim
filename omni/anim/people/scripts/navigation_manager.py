@@ -144,16 +144,9 @@ class NavigationManager:
 
         for point in coords[1:]:
             if self.navmesh_enabled:
-                print("check validate_navmesh_point")
-                print(self.character_name)
-                print(prev_point)
-                print(point)
+
                 checkedPrevPoint = Utils.validate_navmesh_point(prev_point)
                 checkedPoint = Utils.validate_navmesh_point(point)
-                print(checkedPrevPoint)
-                print(checkedPoint)
-                print(prev_point)
-                print(point)
 
                 if ( checkedPrevPoint != True ):
                     print("There is not valid prev_point position")

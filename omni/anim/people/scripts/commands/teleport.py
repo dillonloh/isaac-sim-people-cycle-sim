@@ -28,13 +28,13 @@ class Teleport(Command):
         self.character.set_world_transform(target_location, default_rotation)
         
     def execute(self, dt):
-        print("Teleport execute")
+        # print("Teleport execute")
         if not self.is_setup:
             self.setup()
         return self.update(dt)
 
     def update(self, dt):
-        print("Teleport update")
+        # print("Teleport update")
         # Since teleportation is instantaneous, we mark the command as completed immediately.
         self.time_elapsed += dt
         if self.time_elapsed > self._exit_time:

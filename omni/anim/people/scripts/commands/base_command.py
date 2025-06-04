@@ -28,6 +28,7 @@ class Command:
         self.set_rotation = None
         self.char_start_rot = None
         self.duration = 5
+        self.max_speed = 100
         
         
     def setup(self):
@@ -111,5 +112,8 @@ class Command:
         # Blends walking animation when starting or stopping.
         max_change = dt / Utils.CONFIG["WalkBlendTime"]
         delta_walk = Utils.cap(self.desired_walk_speed - self.actual_walk_speed, -1 * max_change, max_change)
+        
+        ## Change this logic to set user walking speed
         self.actual_walk_speed = Utils.cap(self.actual_walk_speed + delta_walk, 0.0, 1.0)
         self.character.set_variable("Walk", self.actual_walk_speed)
+        print(self.actual_walk_speed)
