@@ -116,4 +116,3 @@ class Command:
         ## Change this logic to set user walking speed
         self.actual_walk_speed = Utils.cap(self.actual_walk_speed + delta_walk, 0.0, 1.0)
         self.character.set_variable("Walk", self.actual_walk_speed)
-        print(self.actual_walk_speed)

@@ -15,6 +15,9 @@ from .utils import Utils
 from .global_character_position_manager import GlobalCharacterPositionManager
 import omni.anim.graph.core as ag
 
+# added
+from omni.physx import get_physx_scene_query_interface
+
 class NavigationManager:
     """
     Manages navigation for a character, such as generating static and dynamic obstacle free paths and publishing current and future positions of characters.
@@ -227,6 +230,12 @@ class NavigationManager:
 
 
     def update_path(self):
+
+        # overwrite with sfm version
+        self.update_path_sfm()
+
+        return
+
         self.update_target_path_progress()        
         if self.destination_reached() or not self.dynamic_avoidance_enabled:
             return 
@@ -286,3 +295,112 @@ class NavigationManager:
                 new_target_list.insert(0, new_position)
                 self.generate_path(new_target_list)
                 self.path_points.insert(0, current_pos)
+
+
+    def update_path_sfm(self):
+        self.update_target_path_progress()
+
+        if self.destination_reached() or not self.dynamic_avoidance_enabled:
+            print(f"[{self.character_name}] Destination reached or dynamic avoidance disabled.")
+            return
+
+        current_pos = Utils.get_character_pos(self.character)
+        current_vel = self.velocity_vec
+
+        if not self.path_targets:
+            print(f"[{self.character_name}] No path targets.")
+            return
+
+        ##### Parameters #####
+        mass = 1.0
+        relaxation_time = 0.5
+        desired_speed = 1.5  # m/s
+        time_step = 0.1
+
+        A_social = 15.0       # Social repulsion strength
+        B_social = 0.8        # Social repulsion range
+        personal_space = 1.0  # Preferred minimal distance
+
+        A_wall = 30.0          # Wall repulsion strength
+        B_wall = 0.5         # Wall repulsion range
+        wall_margin = 1.0
+
+        ##### 1. Desired Force (towards goal) #####
+        goal_dir = Utils.sub3(self.path_targets[0], current_pos)
+        goal_dir_norm = Utils.normalize3(goal_dir)
+        desired_vel = Utils.scale3(goal_dir_norm, desired_speed)
+        desired_force = Utils.scale3(Utils.sub3(desired_vel, current_vel), mass / relaxation_time)
+
+        force_total = desired_force
+        print(f"[{self.character_name}] Desired Force: {desired_force}")
+
+        ##### 2. Social Repulsion from Other Characters #####
+        for other in self.character_manager.get_all_managed_characters():
+            if other == self.character_name:
+                continue
+
+            other_pos = self.character_manager.get_character_current_pos(other)
+            diff = Utils.sub3(current_pos, other_pos)
+            dist = Utils.length3(diff)
+
+            if dist == 0:
+                continue
+
+            direction = Utils.normalize3(diff)
+            exponent = (personal_space - dist) / B_social
+            strength = A_social * math.exp(exponent)
+            repulsion = Utils.scale3(direction, strength)
+            force_total = Utils.add3(force_total, repulsion)
+
+        ##### 3. Wall Repulsion via Raycasting #####
+        origin = carb.Float3(current_pos.x, current_pos.y, current_pos.z + 0.1)
+        ray_distance = 1.0
+        num_rays = 36
+        angle_step = 360 / num_rays
+        closest_hit = None
+        min_dist = float('inf')
+
+        def ray_hit(hit):
+            nonlocal closest_hit, min_dist
+            if not hit.collision.startswith("/World/Characters"):
+                hit_point = hit.position
+                diff = Utils.sub3(current_pos, hit_point)
+                dist = Utils.length3(diff)
+                if dist < min_dist:
+                    min_dist = dist
+                    closest_hit = hit
+            return True
+
+        for i in range(num_rays):
+            angle_rad = math.radians(i * angle_step)
+            direction = carb.Float3(math.cos(angle_rad), math.sin(angle_rad), 0.0)
+            get_physx_scene_query_interface().raycast_all(origin, direction, ray_distance, ray_hit)
+
+        if closest_hit:
+            hit_point = closest_hit.position
+            diff = Utils.sub3(current_pos, hit_point)
+            dist = Utils.length3(diff)
+            direction = Utils.normalize3(diff)
+            exponent = (wall_margin - dist) / B_wall
+            strength = A_wall * math.exp(exponent)
+            wall_repulsion = Utils.scale3(direction, strength)
+            force_total = Utils.add3(force_total, wall_repulsion)
+            print(f"  Nearest Wall Hit: {closest_hit.collision} at {dist:.2f}m")
+            print(f"  Wall Repulsion: {wall_repulsion}")
+        else:
+            print("  No wall obstacle detected nearby.")
+
+        ##### 4. Update Velocity and Position #####
+        acceleration = Utils.scale3(force_total, 1.0 / mass)
+        new_velocity = Utils.add3(current_vel, Utils.scale3(acceleration, time_step))
+        next_position = Utils.add3(current_pos, Utils.scale3(new_velocity, time_step))
+
+        if not self.navmesh_enabled or Utils.validate_navmesh_point([next_position.x, next_position.y, 0]):
+            print(f"  Next position is valid, inserting into path.")
+            new_target_list = self.path_targets.copy()
+            new_target_list.insert(0, next_position)
+            self.generate_path(new_target_list)
+            self.path_points.insert(0, current_pos)
+            self.velocity_vec = new_velocity
+        else:
+            print(f"  Next position is NOT on navmesh or invalid. Skipping.")
