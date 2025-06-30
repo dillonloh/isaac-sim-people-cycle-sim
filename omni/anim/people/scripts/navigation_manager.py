@@ -233,7 +233,6 @@ class NavigationManager:
 
         # overwrite with sfm version
         self.update_path_sfm()
-
         return
 
         self.update_target_path_progress()        
@@ -314,18 +313,21 @@ class NavigationManager:
         ##### Parameters #####
         mass = 1.0
         relaxation_time = 0.5
-        desired_speed = 1.5  # m/s
+        desired_speed = 1.5 
         time_step = 0.1
 
-        A_social = 15.0       # Social repulsion strength
-        B_social = 0.8        # Social repulsion range
-        personal_space = 1.0  # Preferred minimal distance
+        A_social = 15.0
+        B_social = 0.8
+        personal_space = 1.0
 
-        A_wall = 30.0          # Wall repulsion strength
-        B_wall = 0.5         # Wall repulsion range
+        k = 120.0       # Contact repulsion strength
+        kappa = 240.0   # Friction coefficient
+
+        A_wall = 30.0
+        B_wall = 0.5
         wall_margin = 1.0
 
-        ##### 1. Desired Force (towards goal) #####
+        ##### 1. Desired Force (toward goal) #####
         goal_dir = Utils.sub3(self.path_targets[0], current_pos)
         goal_dir_norm = Utils.normalize3(goal_dir)
         desired_vel = Utils.scale3(goal_dir_norm, desired_speed)
@@ -334,25 +336,37 @@ class NavigationManager:
         force_total = desired_force
         print(f"[{self.character_name}] Desired Force: {desired_force}")
 
-        ##### 2. Social Repulsion from Other Characters #####
+        ##### 2. Social Forces from Other Characters #####
         for other in self.character_manager.get_all_managed_characters():
             if other == self.character_name:
                 continue
 
             other_pos = self.character_manager.get_character_current_pos(other)
+            other_vel = self.character_manager.get_character_velocity(other)
+            radius_i = self.character_manager.get_character_radius(self.character_name)
+            radius_j = self.character_manager.get_character_radius(other)
+            r_ij = radius_i + radius_j
+
             diff = Utils.sub3(current_pos, other_pos)
             dist = Utils.length3(diff)
-
             if dist == 0:
                 continue
 
-            direction = Utils.normalize3(diff)
-            exponent = (personal_space - dist) / B_social
-            strength = A_social * math.exp(exponent)
-            repulsion = Utils.scale3(direction, strength)
-            force_total = Utils.add3(force_total, repulsion)
+            n_ij = Utils.normalize3(diff)
+            overlap = r_ij - dist
+            g_overlap = max(0.0, overlap)
 
-        ##### 3. Wall Repulsion via Raycasting #####
+            # Exponential social repulsion
+            exponent = (r_ij - dist) / B_social
+            force_social = Utils.scale3(n_ij, A_social * math.exp(exponent))
+
+            # Physical contact force
+            force_body = Utils.scale3(n_ij, k * g_overlap)
+
+            repulsion_total = Utils.add3(force_social, force_body)
+            force_total = Utils.add3(force_total, repulsion_total)
+
+        ##### 3. Wall Repulsion (Raycasting) #####
         origin = carb.Float3(current_pos.x, current_pos.y, current_pos.z + 0.1)
         ray_distance = 1.0
         num_rays = 36
@@ -381,14 +395,27 @@ class NavigationManager:
             diff = Utils.sub3(current_pos, hit_point)
             dist = Utils.length3(diff)
             direction = Utils.normalize3(diff)
-            exponent = (wall_margin - dist) / B_wall
-            strength = A_wall * math.exp(exponent)
-            wall_repulsion = Utils.scale3(direction, strength)
-            force_total = Utils.add3(force_total, wall_repulsion)
-            print(f"  Nearest Wall Hit: {closest_hit.collision} at {dist:.2f}m")
-            print(f"  Wall Repulsion: {wall_repulsion}")
+            overlap = wall_margin - dist
+            g_overlap = max(0.0, overlap)
+
+            # Wall repulsion forces
+            exponent = overlap / B_wall
+            force_wall_social = Utils.scale3(direction, A_wall * math.exp(exponent))
+            force_wall_body = Utils.scale3(direction, k * g_overlap)
+
+            # Friction along wall
+            t_wall = Utils.cross3(direction, carb.Float3(0, 0, 1))
+            vel_tangent = Utils.dot3(current_vel, t_wall)
+            force_wall_friction = Utils.scale3(t_wall, kappa * g_overlap * vel_tangent)
+
+            wall_force = Utils.add3(Utils.add3(force_wall_social, force_wall_body), force_wall_friction)
+            force_total = Utils.add3(force_total, wall_force)
+
+            # print(f"  Nearest Wall Hit: {closest_hit.collision} at {dist:.2f}m")
+            # print(f"  Wall Force: {wall_force}")
         else:
-            print("  No wall obstacle detected nearby.")
+            # print("  No wall obstacle detected nearby.")
+            pass
 
         ##### 4. Update Velocity and Position #####
         acceleration = Utils.scale3(force_total, 1.0 / mass)
@@ -396,11 +423,12 @@ class NavigationManager:
         next_position = Utils.add3(current_pos, Utils.scale3(new_velocity, time_step))
 
         if not self.navmesh_enabled or Utils.validate_navmesh_point([next_position.x, next_position.y, 0]):
-            print(f"  Next position is valid, inserting into path.")
+            # print(f"  Next position is valid, inserting into path.")
             new_target_list = self.path_targets.copy()
             new_target_list.insert(0, next_position)
             self.generate_path(new_target_list)
             self.path_points.insert(0, current_pos)
             self.velocity_vec = new_velocity
         else:
-            print(f"  Next position is NOT on navmesh or invalid. Skipping.")
+            # print(f"  Next position is NOT on navmesh or invalid. Skipping.")
+            pass

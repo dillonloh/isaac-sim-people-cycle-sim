@@ -17,6 +17,8 @@ from rclpy.node import Node
 from geometry_msgs.msg import Pose, PoseStamped
 from rosgraph_msgs.msg import Clock
 
+from .utils import Utils
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%a, %d %b %Y %H:%M:%S', filename='/home/dillon/test.log', filemode='w')
 
@@ -172,3 +174,17 @@ class GlobalCharacterPositionManager:
 
     def get_all_managed_characters(self):
         return self._character_positions.keys()
+
+    def get_character_velocity(self, char_prim_path, time_horizon=0.5):
+        """
+        Estimate character velocity using current and future positions.
+        """
+        if char_prim_path not in self._character_positions or char_prim_path not in self._character_future_positions:
+            return carb.Float3(0.0, 0.0, 0.0)
+
+        current_pos = self._character_positions[char_prim_path]
+        future_pos = self._character_future_positions[char_prim_path]
+
+        delta = Utils.sub3(future_pos, current_pos)
+        estimated_velocity = Utils.scale3(delta, 1.0 / time_horizon)
+        return estimated_velocity
